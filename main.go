@@ -4,13 +4,23 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 )
+
+type cliConfig struct {
+	Next string
+	Prev *string
+}
+
+func GetLocationAreasUrl(offset int) string {
+	return fmt.Sprintf("https://pokeapi.co/api/v2/location-area/?take=20&offset=%v", offset)
+}
 
 type cliCommand struct {
 	name        string
 	description string
-	callback    func() error
+	callback    func(*cliConfig) error
 }
 
 func allowedCommands() map[string]cliCommand {
@@ -18,7 +28,7 @@ func allowedCommands() map[string]cliCommand {
 	commands["help"] = cliCommand{
 		name:        "help",
 		description: "Displays a help message",
-		callback: func() error {
+		callback: func(_ *cliConfig) error {
 			fmt.Printf("\nWelcome to the Pokedex!\n")
 			fmt.Printf("Usage:\n\n")
 			for key := range commands {
@@ -33,16 +43,54 @@ func allowedCommands() map[string]cliCommand {
 	commands["exit"] = cliCommand{
 		name:        "exit",
 		description: "Exit the Pokedex",
-		callback: func() error {
-			return errors.New("Exit")
+		callback: func(_ *cliConfig) error {
+			return errors.New("exit")
 		},
 	}
+
+	commands["map"] = cliCommand{
+		name:        "map",
+		description: "Display next 20 locations",
+		callback: func(cfg *cliConfig) error {
+			ls, err := GetLocationAreas(cfg, false)
+			if err != nil {
+				log.Fatal(err)
+			}
+			for _, l := range ls {
+				fmt.Printf("%s\n", l.Name)
+			}
+			return nil
+		},
+	}
+
+	commands["mapb"] = cliCommand{
+		name:        "mapb",
+		description: "Display the previous 20 locations",
+		callback: func(cfg *cliConfig) error {
+			if cfg.Prev == nil {
+				return errors.New("cannot go back to previous loations, at the start of the list")
+			}
+			ls, err := GetLocationAreas(cfg, true)
+			if err != nil {
+				log.Fatal(err)
+			}
+			for _, l := range ls {
+				fmt.Printf("%s\n", l.Name)
+			}
+			return nil
+		},
+	}
+
 	return commands
 }
 
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	commands := allowedCommands()
+	config := cliConfig{
+		Next: GetLocationAreasUrl(0),
+		Prev: nil,
+	}
 
 	fmt.Printf("Pokedex > ")
 	for scanner.Scan() {
@@ -53,8 +101,9 @@ func main() {
 			fmt.Printf("Pokedex > ")
 			continue
 		}
-		err := cliCommand.callback()
+		err := cliCommand.callback(&config)
 		if err != nil {
+			fmt.Println(err)
 			break
 		}
 		fmt.Printf("Pokedex > ")
