@@ -6,11 +6,14 @@ import (
 	"fmt"
 	"log"
 	"os"
+
+	"github.com/s-lambert/pokedexcli/internal/pokecache"
 )
 
 type cliConfig struct {
-	Next string
-	Prev *string
+	cache *pokecache.Cache
+	Next  string
+	Prev  *string
 }
 
 func GetLocationAreasUrl(offset int) string {
@@ -87,9 +90,11 @@ func allowedCommands() map[string]cliCommand {
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	commands := allowedCommands()
+	cache := pokecache.NewCache()
 	config := cliConfig{
-		Next: GetLocationAreasUrl(0),
-		Prev: nil,
+		cache: cache,
+		Next:  GetLocationAreasUrl(0),
+		Prev:  nil,
 	}
 
 	fmt.Printf("Pokedex > ")
