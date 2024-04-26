@@ -46,6 +46,10 @@ func GetLocationAreas(cfg *cliConfig, fetchPrevious bool) ([]LocationArea, error
 		log.Fatal(err)
 	}
 	cfg.Next = ls.Next
-	cfg.Prev = ls.Previous
+	if !fetchPrevious {
+		cfg.Prev = &url
+	} else {
+		cfg.Prev = ls.Previous
+	}
 	return ls.Results, nil
 }
