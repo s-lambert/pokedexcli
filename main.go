@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"strings"
 
@@ -12,10 +13,12 @@ import (
 )
 
 type cliConfig struct {
-	cache    *pokecache.Cache
-	Next     string
-	Prev     *string
-	AreaInfo string
+	cache       *pokecache.Cache
+	Next        string
+	Prev        *string
+	AreaInfo    string
+	PokemonInfo string
+	Pokedex     map[string]PokemonInfo
 }
 
 func GetLocationAreasUrl(offset int) string {
@@ -108,6 +111,32 @@ func allowedCommands() map[string]cliCommand {
 		},
 	}
 
+	commands["catch"] = cliCommand{
+		name:        "catch",
+		description: "Attempt to catch a pokemon",
+		callback: func(cfg *cliConfig, pokemonName string) error {
+			if pokemonName == "" {
+				return errors.New("catch expects a pokemon name")
+			}
+
+			p, err := GetPokemonInfo(cfg, pokemonName)
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Printf("Throwing a Pokeball at %s...\n", p.Name)
+
+			catchCheck := 100 - rand.Intn(p.BaseExperience)
+			if catchCheck > 0 {
+				fmt.Printf("%s was caught!\n", p.Name)
+				cfg.Pokedex[p.Name] = p
+			} else {
+				fmt.Printf("%s escaped!\n", p.Name)
+			}
+
+			return nil
+		},
+	}
+
 	return commands
 }
 
@@ -116,10 +145,12 @@ func main() {
 	commands := allowedCommands()
 	cache := pokecache.NewCache()
 	config := cliConfig{
-		cache:    cache,
-		Next:     GetLocationAreasUrl(0),
-		Prev:     nil,
-		AreaInfo: "https://pokeapi.co/api/v2/location-area/",
+		cache:       cache,
+		Next:        GetLocationAreasUrl(0),
+		Prev:        nil,
+		AreaInfo:    "https://pokeapi.co/api/v2/location-area/",
+		PokemonInfo: "https://pokeapi.co/api/v2/pokemon/",
+		Pokedex:     make(map[string]PokemonInfo),
 	}
 
 	fmt.Printf("Pokedex > ")

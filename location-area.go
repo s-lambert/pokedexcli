@@ -2,10 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
-	"io"
 	"log"
-	"net/http"
 )
 
 type LocationAreaInfo struct {
@@ -64,33 +61,11 @@ type LocationAreaInfo struct {
 func GetLocationArea(cfg *cliConfig, locationName string) (LocationAreaInfo, error) {
 	url := cfg.AreaInfo + locationName
 	la := LocationAreaInfo{}
-	cached, ok := cfg.cache.Get(url)
-	if ok {
-		fmt.Printf("Getting from cache: %s\n", url)
-		err := json.Unmarshal(cached, &la)
-		if err != nil {
-			log.Fatal(err)
-		}
-	} else {
-		fmt.Printf("Fetching: %s\n", url)
-		res, err := http.Get(url)
-		if err != nil {
-			log.Fatal(err)
-		}
-		body, err := io.ReadAll(res.Body)
-		res.Body.Close()
-		if res.StatusCode > 299 {
-			log.Fatalf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
-		}
-		if err != nil {
-			log.Fatal(err)
-		}
-		err = json.Unmarshal(body, &la)
-		if err != nil {
-			log.Fatal(err)
-		}
-		cfg.cache.Add(url, body)
 
+	body := FetchWithCache(cfg, url)
+	err := json.Unmarshal(body, &la)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	return la, nil
