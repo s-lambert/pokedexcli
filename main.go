@@ -137,6 +137,37 @@ func allowedCommands() map[string]cliCommand {
 		},
 	}
 
+	commands["inspect"] = cliCommand{
+		name:        "inspect",
+		description: "Describe a caught pokemon",
+		callback: func(cfg *cliConfig, pokemonName string) error {
+			if pokemonName == "" {
+				return errors.New("inspect expects a pokemon name")
+			}
+
+			p, ok := cfg.Pokedex[pokemonName]
+			if !ok {
+				fmt.Println("you have not caught that pokemon")
+			} else {
+				PrintPokemonInfo(p)
+			}
+
+			return nil
+		},
+	}
+
+	commands["pokedex"] = cliCommand{
+		name:        "pokedex",
+		description: "List all caught pokemon",
+		callback: func(cfg *cliConfig, _ string) error {
+			for _, p := range cfg.Pokedex {
+				fmt.Printf("  - %s\n", p.Name)
+			}
+
+			return nil
+		},
+	}
+
 	return commands
 }
 
